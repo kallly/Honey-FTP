@@ -3,23 +3,30 @@ use std::{
     io::{Write, Read},
     net::{TcpStream},
     process::Command,
+    sync::Arc,
+    sync::Mutex,
 };
+
 use regex::Regex;
+
+#[path = "ftp_data.rs"] mod ftp_data;
+use ftp_data::Ftp_data;
 
 #[path = "credential.rs"] pub mod credential;
 use credential::Credential;
 
 pub struct Ftp{
     stream: TcpStream,
-    credentials: Vec<Credential>,
+    credentials: Arc<Mutex<Vec<Credential>>>,
+    ftp_data: Option<Ftp_data>,
 }
 
 const WELCOME:&[u8] = dotenv!("WELCOME").as_bytes();
 
 impl Ftp{
 
-    pub fn new(stream:TcpStream, credentials:Vec<Credential>) -> Ftp {
-        Ftp { stream: stream, credentials: credentials }
+    pub fn new(stream: TcpStream, credentials: Arc<Mutex<Vec<Credential>>>) -> Ftp {
+        Ftp { stream: stream, credentials: credentials, ftp_data: None }
     }
     
     pub fn handle_connection(&mut self){
@@ -48,28 +55,59 @@ impl Ftp{
             let user = user.unwrap();
             let pass = pass.unwrap();
             println!("{0} {1}",user,pass);
-            if user != "anonymous" || pass != "" {
+            let mut correct: bool = false;
+
+            for credential in self.credentials.lock().unwrap().iter(){
+                correct = credential.compare(&user,&pass);
+                if correct{
+                    break;
+                }
+            }
+            if !correct{
                 self.login_incorrect();
             }
             else{
                 self.login_successful();
 
-                //while true{
-                //    let command_option = match self.read(){
-                //        Some(t_user) => grep(t_user,r"(.*)\r"),
-                //        None => None,
-                //    };
-                //    if command_option.is_some(){
-                //        let command = command_option.unwrap();
-                //        println!("{:?}",command);
-                //        if command == "EPSV"{
-                //            self.write(b"229 Entering Extended Passive Mode (|||21000|)");
-                //        }
-                        //if command == "LIST"{
-                        //    self.write(b"150 Here comes the directory listing.");
-                        //    self.write(STRUCT);
-                        //    self.write(b"226 Directory send OK.");
-                        //}
+                for n in 1..10{
+                    sleep("0.5");
+                    let command_option = match self.read(){
+                        Some(t_user) => grep(t_user,r"(.*)\r"),
+                        None => None,
+                    };
+                    if command_option.is_some(){
+                        let command = command_option.unwrap();
+                        println!("{:?}",command);
+                        if command == "QUIT"{
+                            self.write(b"221 Goodbye.");
+                        }
+                        if command == "SYST"{
+                            self.write(b"215 UNIX Type: L8");
+                        }
+                        if command == "FEAT"{
+                            self.write(b"211-Features:");
+                            self.write(b" EPRT");
+                            self.write(b" EPSV");
+                            self.write(b" MDTM");
+                            self.write(b" PASV");
+                            self.write(b" REST STREAM");
+                            self.write(b" SIZE");
+                            self.write(b" TVFS");
+                            self.write(b" UTF8");
+                            self.write(b"211 End");
+                        }
+                        if command == "EPSV"{
+                            self.write(b"229 Entering Extended Passive Mode (|||4444|)");
+                            self.ftp_data = Some(Ftp_data::new(21000));
+                        }
+                        if command == "LIST"{
+                            self.write(b"150 Here comes the directory listing.");
+                            if self.ftp_data.is_some(){
+                                self.ftp_data.take().expect("ERROR").send(b"-rw-r--r--    1 1000     1000         1964 May 01 12:26 passwd");
+                            }
+
+                            self.write(b"226 Directory send OK.");
+                        }
                         //if command == "SIZE test.jpg"{
                         //    self.write(b"213 952497");
                         //    self.read_trash();
@@ -81,8 +119,8 @@ impl Ftp{
                         //    self.read_trash();
                         //    self.write(b"213 20221031170017");
                         //}
-                //    }
-                //}
+                    }
+                }
             }
         }
     }
@@ -96,22 +134,6 @@ impl Ftp{
 
     fn login_successful(&mut self){
         self.write(b"230 Login successful.");
-        self.read_trash();
-        self.write(b"215 UNIX Type: L8");
-        self.read_trash();
-        self.write(b"211-Features:");
-        self.write(b" EPRT");
-        self.write(b" EPSV");
-        //read(&stream,&mut [0; 4]);
-        self.write(b" MDTM");
-        self.write(b" PASV");
-        //read(&stream,&mut [0; 4]);
-        self.write(b" REST STREAM");
-        self.write(b" SIZE");
-        self.write(b" TVFS");
-        self.read_trash();
-        self.write(b" UTF8");
-        self.write(b"211 End");
     }
     
     
@@ -123,7 +145,6 @@ impl Ftp{
         let mut text:Vec<u8> = Vec::from(txt);
         text.extend_from_slice(b"\r\n");
 
-        //temp = temp + b"";
         self.stream.write(&text);
     }
     #[allow(unused_must_use)]
