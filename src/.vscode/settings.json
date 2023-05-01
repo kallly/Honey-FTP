@@ -1,0 +1,11 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "Cargo.toml",
+    ],
+    "rust-analyzer.cargo.sysroot": "/usr",
+    "files.associations": {
+        "sstream": "c",
+        "string": "c",
+        "iostream": "cpp"
+    }
+}
