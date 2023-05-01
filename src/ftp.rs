@@ -68,8 +68,9 @@ impl Ftp{
             }
             else{
                 self.login_successful();
-
-                for n in 1..10{
+                
+                let mut stop: bool = false;
+                while !stop {
                     sleep("0.5");
                     let command_option = match self.read(){
                         Some(t_user) => grep(t_user,r"(.*)\r"),
@@ -80,6 +81,7 @@ impl Ftp{
                         println!("{:?}",command);
                         if command == "QUIT"{
                             self.write(b"221 Goodbye.");
+                            stop = true;
                         }
                         if command == "SYST"{
                             self.write(b"215 UNIX Type: L8");
