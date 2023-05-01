@@ -10,7 +10,7 @@ use std::{
 use regex::Regex;
 
 #[path = "ftp_data.rs"] mod ftp_data;
-use ftp_data::Ftp_data;
+use ftp_data::FtpData;
 
 #[path = "credential.rs"] pub mod credential;
 use credential::Credential;
@@ -18,7 +18,7 @@ use credential::Credential;
 pub struct Ftp{
     stream: TcpStream,
     credentials: Arc<Mutex<Vec<Credential>>>,
-    ftp_data: Option<Ftp_data>,
+    ftp_data: Option<FtpData>,
 }
 
 const WELCOME:&[u8] = dotenv!("WELCOME").as_bytes();
@@ -100,7 +100,7 @@ impl Ftp{
                         }
                         if command == "EPSV"{
                             self.write(b"229 Entering Extended Passive Mode (|||4444|)");
-                            self.ftp_data = Some(Ftp_data::new(21000));
+                            self.ftp_data = Some(FtpData::new(21000));
                         }
                         if command == "LIST"{
                             self.write(b"150 Here comes the directory listing.");
