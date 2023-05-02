@@ -2,10 +2,12 @@ use std::{
     str::from_utf8,
     io::{Write, Read},
     net::{TcpStream},
-    process::Command,
-    sync::Arc,
-    sync::Mutex,
+    sync::{Arc, Mutex},
+    thread,
+    time,
 };
+
+use port_scanner::local_port_available;
 
 use regex::Regex;
 
@@ -71,7 +73,7 @@ impl Ftp{
                 
                 let mut stop: bool = false;
                 while !stop {
-                    sleep("0.5");
+                    sleep(500);
                     let command_option = match self.read(){
                         Some(t_user) => grep(t_user,r"(.*)\r"),
                         None => None,
@@ -99,8 +101,14 @@ impl Ftp{
                             self.write(b"211 End");
                         }
                         if command == "EPSV"{
-                            self.write(b"229 Entering Extended Passive Mode (|||4444|)");
-                            self.ftp_data = Some(FtpData::new(21000));
+                            for port in 21000..21100 {
+                                if local_port_available(port) {
+                                    self.write(format!("229 Entering Extended Passive Mode (|||{}|)",port).as_bytes());
+                                    self.ftp_data = Some(FtpData::new(port));
+                                    break;
+                                }
+
+                            }
                         }
                         if command == "LIST"{
                             self.write(b"150 Here comes the directory listing.");
@@ -143,7 +151,7 @@ impl Ftp{
     
     #[allow(unused_must_use)]
     fn write(&mut self, txt:&[u8]){
-        sleep(dotenv!("DELAY"));
+        sleep(dotenv!("DELAY").parse::<u64>().unwrap());
         let mut text:Vec<u8> = Vec::from(txt);
         text.extend_from_slice(b"\r\n");
 
@@ -187,7 +195,6 @@ pub fn grep(resp:String,reg:&str) -> Option<String>{
     Some((&cap[1]).to_string())
 }
 
-fn sleep(time:&str){
-    let mut child = Command::new("sleep").arg(time).spawn().unwrap();
-    child.wait().expect("Wait broken");
+fn sleep(time:u64){
+    thread::sleep(time::Duration::from_millis(time));
 }

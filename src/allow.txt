@@ -1,3 +1,6 @@
 root:root
+root:
 admin:admin
+admin:
 anonymous:
+anonymous:anonymous@

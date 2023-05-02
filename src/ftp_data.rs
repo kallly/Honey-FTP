@@ -24,7 +24,6 @@ impl FtpData{
     
     #[allow(unused_must_use)]
     pub fn send(&mut self, txt:&[u8]){
-        println!("OUIIIIII");
         let mut text:Vec<u8> = Vec::from(txt);
         text.extend_from_slice(b"\r\n");
         self.stream.write(&text);

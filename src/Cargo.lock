@@ -9,6 +9,7 @@ dependencies = [
  "byte-strings",
  "dotenv",
  "dotenv_codegen",
+ "port_scanner",
  "regex",
 ]
 
@@ -75,6 +76,12 @@ name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
+
+[[package]]
+name = "port_scanner"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "325a6d2ac5dee293c3b2612d4993b98aec1dff096b0a2dae70ed7d95784a05da"
 
 [[package]]
 name = "proc-macro-hack"
