@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  prod:
+    build: .
+    command:
+      - /home/no_root/compiled/debug/ftp
+    ports:
+      - 21:21
+    volumes:
+      - type: bind
+        source: ./compiled/
+        target: /home/no_root/compiled/
+      - type: bind
+        source: ./src/allow.txt
+        target: /home/no_root/allow.txt

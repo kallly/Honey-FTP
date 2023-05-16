@@ -56,7 +56,7 @@ impl Ftp{
         else{
             let user = user.unwrap();
             let pass = pass.unwrap();
-            println!("{0} {1}",user,pass);
+            println!("{} {} {}",self.stream.peer_addr().unwrap(),user,pass);
             let mut correct: bool = false;
 
             for credential in self.credentials.lock().unwrap().iter(){
@@ -73,14 +73,14 @@ impl Ftp{
                 
                 let mut stop: bool = false;
                 while !stop {
-                    sleep(500);
+                    sleep(400);
                     let command_option = match self.read(){
                         Some(t_user) => grep(t_user,r"(.*)\r"),
                         None => None,
                     };
                     if command_option.is_some(){
                         let command = command_option.unwrap();
-                        println!("{:?}",command);
+                        println!("{} {:?}",self.stream.peer_addr().unwrap(),command);
                         if command == "QUIT"{
                             self.write(b"221 Goodbye.");
                             stop = true;
@@ -107,7 +107,7 @@ impl Ftp{
                                     self.ftp_data = Some(FtpData::new(port));
                                     break;
                                 }
-
+                                println!("port no available: {}",port);
                             }
                         }
                         if command == "LIST"{
@@ -115,20 +115,33 @@ impl Ftp{
                             if self.ftp_data.is_some(){
                                 self.ftp_data.take().expect("ERROR").send(b"-rw-r--r--    1 1000     1000         1964 May 01 12:26 passwd");
                             }
-
                             self.write(b"226 Directory send OK.");
                         }
-                        //if command == "SIZE test.jpg"{
-                        //    self.write(b"213 952497");
-                        //    self.read_trash();
-                        //    self.write(b"229 Entering Extended Passive Mode (|||21000|)");
-                        //    self.read_trash();
-                        //    self.write(b"150 Opening BINARY mode data connection for test.jpg (952497 bytes).");
-                        //    self.write(b"0000000000000000000000000000000000000000000000000000000000000000000000000000000");
-                        //    self.write(b"226 Transfer complete.");
-                        //    self.read_trash();
-                        //    self.write(b"213 20221031170017");
-                        //}
+                        if command == "TYPE I"{
+                            self.write(b"200 Switching to Binary mode.");
+                        }
+                        if command == "TYPE A"{
+                            self.write(b"200 Switching to ASCII mode.");
+                        }
+                        if command.starts_with("SIZE"){//SIZE ls_real_ftp.pcapng
+                            self.write(b"213 1964");
+                        }
+                        if command.starts_with("RETR"){//RETR ls_real_ftp.pcapng
+                            for _n in 0..1000{
+                                self.writenoend(b"HACKED");
+                            }
+                            self.write(b"150 Opening BINARY mode data connection for test.jpg (952497 bytes).");
+                            if self.ftp_data.is_some(){
+                                self.ftp_data.take().expect("ERROR").send(b"000000");
+                            }
+                            self.write(b"226 Transfer complete.");
+                        }
+                        if command.starts_with("MDTM"){//MDTM ls_real_ftp.pcapng
+                            self.write(b"213 20230501122600");
+                            if self.ftp_data.is_some(){
+                                self.ftp_data.take().expect("ERROR").send(b"");
+                            }
+                        }
                     }
                 }
             }
@@ -158,6 +171,12 @@ impl Ftp{
         self.stream.write(&text);
     }
     #[allow(unused_must_use)]
+    fn writenoend(&mut self, txt:&[u8]){
+        sleep(dotenv!("DELAY").parse::<u64>().unwrap());
+
+        self.stream.write(&txt);
+    }
+    #[allow(unused_must_use)]
     fn read_trash(&mut self){
         self.stream.read(&mut [0; 0]);
     }
@@ -179,6 +198,7 @@ impl Ftp{
         }
     }
 }
+
 pub fn grep(resp:String,reg:&str) -> Option<String>{
         
     let re = Regex::new(reg).unwrap(); 
