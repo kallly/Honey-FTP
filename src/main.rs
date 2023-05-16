@@ -1,5 +1,4 @@
-#[macro_use]
-extern crate dotenv_codegen;
+extern crate dotenv;
 
 
 use std::{
@@ -7,18 +6,19 @@ use std::{
     thread::spawn,
     sync::Arc,
     sync::Mutex,
+    fs,
+    env,
 };
+use dotenv::dotenv;
 mod ftp;
 use ftp::Ftp;
 
 #[path = "credential.rs"] mod credential;
 use ftp::credential::Credential;
 
-use std::fs;
-
 
 fn main() {
-
+    dotenv().expect(".env file not found");
     let contents = fs::read_to_string("allow.txt")
         .expect("Should have been able to read the file");
     let mut credentials: Vec<Credential> = Vec::new();
@@ -32,9 +32,9 @@ fn main() {
 
     let l_credentials: Arc<Mutex<Vec<Credential>>> = Arc::new(Mutex::new(credentials));
 
-    let ip_arr: Vec<u8> = dotenv!("LHOST").split('.').into_iter().map(|x| x.parse::<u8>().unwrap()).collect();
+    let ip_arr: Vec<u8> = env::var("LHOST").unwrap().split('.').into_iter().map(|x| x.parse::<u8>().unwrap()).collect();
     let ip = Ipv4Addr::new(ip_arr[0],ip_arr[1],ip_arr[2],ip_arr[3]);
-    let port = dotenv!("LPORT").parse::<u16>().unwrap();
+    let port = env::var("LPORT").unwrap().parse::<u16>().unwrap();
     let addr = SocketAddr::from((ip, port));
     let listener = TcpListener::bind(addr).unwrap();
 

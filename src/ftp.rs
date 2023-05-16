@@ -1,3 +1,5 @@
+extern crate dotenv;
+
 use std::{
     str::from_utf8,
     io::{Write, Read},
@@ -5,6 +7,7 @@ use std::{
     sync::{Arc, Mutex},
     thread,
     time,
+    env,
 };
 
 use port_scanner::local_port_available;
@@ -23,8 +26,6 @@ pub struct Ftp{
     ftp_data: Option<FtpData>,
 }
 
-const WELCOME:&[u8] = dotenv!("WELCOME").as_bytes();
-
 impl Ftp{
 
     pub fn new(stream: TcpStream, credentials: Arc<Mutex<Vec<Credential>>>) -> Ftp {
@@ -35,7 +36,7 @@ impl Ftp{
         let user:Option<String>;
         let pass:Option<String>;
 
-        self.write(WELCOME);
+        self.write(env::var("WELCOME").unwrap().as_bytes());
         
         user = match self.read(){
             Some(t_user) => grep(t_user,r"USER (.*)\r"),
@@ -164,7 +165,7 @@ impl Ftp{
     
     #[allow(unused_must_use)]
     fn write(&mut self, txt:&[u8]){
-        sleep(dotenv!("DELAY").parse::<u64>().unwrap());
+        sleep(env::var("DELAY").unwrap().parse::<u64>().unwrap());
         let mut text:Vec<u8> = Vec::from(txt);
         text.extend_from_slice(b"\r\n");
 
@@ -172,7 +173,7 @@ impl Ftp{
     }
     #[allow(unused_must_use)]
     fn writenoend(&mut self, txt:&[u8]){
-        sleep(dotenv!("DELAY").parse::<u64>().unwrap());
+        sleep(env::var("DELAY").unwrap().parse::<u64>().unwrap());
 
         self.stream.write(&txt);
     }

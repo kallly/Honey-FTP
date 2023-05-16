@@ -13,3 +13,6 @@ services:
       - type: bind
         source: ./src/allow.txt
         target: /home/no_root/allow.txt
+      - type: bind
+        source: .env
+        target: /home/no_root/.env
