@@ -57,7 +57,8 @@ impl Ftp{
         else{
             let user = user.unwrap();
             let pass = pass.unwrap();
-            println!("{} {} {}",self.stream.peer_addr().unwrap(),user,pass);
+
+            println!("{} {} {}", self.stream.peer_addr().unwrap(),user,pass);
             let mut correct: bool = false;
 
             for credential in self.credentials.lock().unwrap().iter(){
@@ -94,7 +95,6 @@ impl Ftp{
                             self.write(b" EPRT");
                             self.write(b" EPSV");
                             self.write(b" MDTM");
-                            self.write(b" PASV");
                             self.write(b" REST STREAM");
                             self.write(b" SIZE");
                             self.write(b" TVFS");
@@ -102,19 +102,33 @@ impl Ftp{
                             self.write(b"211 End");
                         }
                         if command == "EPSV"{
-                            for port in 21000..21100 {
+                            for port in 21000..21010 {
                                 if local_port_available(port) {
                                     self.write(format!("229 Entering Extended Passive Mode (|||{}|)",port).as_bytes());
                                     self.ftp_data = Some(FtpData::new(port));
+                                    println!("port use: {}",port);
                                     break;
                                 }
                                 println!("port no available: {}",port);
                             }
                         }
+                        
+                        if command == "PASV"{
+                            for port in 21000..21010 {
+                                if local_port_available(port) {
+                                    self.write(format!("226 Entering Passive Mode ({},{},{})",env::var("PASVHOST").unwrap(),port/256,port%256).as_bytes());
+                                    self.ftp_data = Some(FtpData::new(port));
+                                    println!("port use: {}",port);
+                                    break;
+                                }
+                                println!("port no available: {}",port);
+                            }
+                        }
+
                         if command == "LIST"{
                             self.write(b"150 Here comes the directory listing.");
                             if self.ftp_data.is_some(){
-                                self.ftp_data.take().expect("ERROR").send(b"-rw-r--r--    1 1000     1000         1964 May 01 12:26 passwd");
+                                self.ftp_data.take().expect("ERROR").send(env::var("STRUCT").unwrap().as_bytes());
                             }
                             self.write(b"226 Directory send OK.");
                         }
@@ -128,12 +142,16 @@ impl Ftp{
                             self.write(b"213 1964");
                         }
                         if command.starts_with("RETR"){//RETR ls_real_ftp.pcapng
-                            for _n in 0..1000{
-                                self.writenoend(b"HACKED");
-                            }
-                            self.write(b"150 Opening BINARY mode data connection for test.jpg (952497 bytes).");
+                            
+                            self.write(b"150 Opening BINARY mode data connection for test.jpg (600 bytes).");
+                            
+                            //while true {
+                            //    if let Some(ref mut ftp_data) = self.ftp_data {
+                            //        ftp_data.sendnoend("HACKED".repeat(1000).as_bytes());
+                            //    }
+                            //}
                             if self.ftp_data.is_some(){
-                                self.ftp_data.take().expect("ERROR").send(b"000000");
+                                self.ftp_data.take().expect("ERROR").send("HACKED".repeat(100).as_bytes());
                             }
                             self.write(b"226 Transfer complete.");
                         }

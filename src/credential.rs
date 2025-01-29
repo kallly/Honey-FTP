@@ -11,6 +11,6 @@ impl Credential{
     }
     #[allow(dead_code)]
     pub fn compare(&self, username:&String, password:&String) -> bool {
-        self.username.eq(username) && self.password.eq(password)
+        self.username.eq(username) && (self.password.eq("*") || self.password.eq(password))
     }
 }

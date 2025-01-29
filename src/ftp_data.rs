@@ -18,6 +18,7 @@ impl FtpData{
         let ip = Ipv4Addr::new(ip_arr[0],ip_arr[1],ip_arr[2],ip_arr[3]);
         let addr = SocketAddr::from((ip, port));
         let listener = TcpListener::bind(addr).unwrap();
+        
         let stream = listener.accept().unwrap();
         
         FtpData { addr: addr, listener: listener, stream: stream.0, client: stream.1}
@@ -28,5 +29,9 @@ impl FtpData{
         let mut text:Vec<u8> = Vec::from(txt);
         text.extend_from_slice(b"\r\n");
         self.stream.write(&text);
+    }
+    #[allow(unused_must_use)]
+    pub fn sendnoend(&mut self, txt:&[u8]){
+        self.stream.write(&txt);
     }
 }

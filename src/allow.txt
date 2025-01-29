@@ -2,5 +2,7 @@ root:root
 root:
 admin:admin
 admin:
+Guest:*
+anonymous:*
 anonymous:
 anonymous:anonymous@

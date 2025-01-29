@@ -1,9 +1,11 @@
-FROM ubuntu@sha256:ca5534a51dd04bbcebe9b23ba05f389466cf0c190f1f8f182d7eea92a9671d00
+FROM rust@sha256:0ec205a9abb049604cb085f2fdf7630f1a31dad1f7ad4986154a56501fb7ca77
 
-RUN apt update && apt upgrade -y && apt autoremove -y&& apt clean;
+RUN useradd no_root
+USER no_root
 
-RUN useradd no_root --create-home;
-WORKDIR /home/no_root
+WORKDIR /usr/src/ftp
+COPY src .
 
-#USER no_root
-#CMD ["/home/no_root/compiled/debug/ftp"]
+RUN cargo install --path .
+
+CMD ["ftp"]
